@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in with Prostar</title>
+<link rel="stylesheet" href="/assets/prostar-base.css">
+<style>
+  .authorize-card { max-width: 420px; }
+
+  .client-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .client-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .client-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .client-sub {
+    font-size: 12px;
+    color: var(--text-faint);
+    font-family: var(--font-mono);
+    margin-top: 2px;
+  }
+
+  /* Account stack — the signature visual motif */
+  .account-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .account-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.1s ease;
+  }
+
+  .account-row:hover {
+    border-color: var(--accent);
+  }
+
+  .account-row:active { transform: scale(0.99); }
+
+  .account-row.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: #06231A;
+    flex-shrink: 0;
+  }
+
+  .account-info { flex: 1; min-width: 0; }
+  .account-name { font-size: 14px; font-weight: 600; }
+  .account-email {
+    font-size: 12px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .add-account-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px dashed var(--border-light);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 14px;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .add-account-row:hover { border-color: var(--accent); color: var(--text); }
+  .add-account-row .plus-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1px dashed var(--border-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  /* Consent step */
+  .consent-scope {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+
+  .scope-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 6px 0;
+  }
+  .scope-item:not(:last-child) { border-bottom: 1px solid var(--border); }
+  .scope-item .check { color: var(--accent); flex-shrink: 0; }
+
+  .consent-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .consent-actions .btn { flex: 1; }
+
+  .step-hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="auth-shell">
+  <div class="wordmark"><span class="dot"></span>Prostar</div>
+
+  <div class="card authorize-card">
+
+    <div id="loading-state">
+      <p class="sub" style="margin:0;">Loading...</p>
+    </div>
+
+    <div id="error-state" class="step-hidden">
+      <h1>Something's not right</h1>
+      <div id="error-detail" class="error-msg"></div>
+      <p class="hint">If you're the developer of this app, double-check the client_id and redirect_uri.</p>
+    </div>
+
+    <!-- STEP 1: Account picker -->
+    <div id="picker-step" class="step-hidden">
+      <div class="client-header">
+        <div class="client-logo" id="client-logo-initial">?</div>
+        <div>
+          <div class="client-name" id="client-name">Loading app</div>
+          <div class="client-sub">wants you to sign in</div>
+        </div>
+      </div>
+
+      <p class="sub" style="margin-bottom:16px;">Choose a Prostar account to continue.</p>
+
+      <div class="account-list" id="account-list"></div>
+
+      <div class="add-account-row" id="add-account-row">
+        <div class="plus-icon">+</div>
+        Use another account
+      </div>
+    </div>
+
+    <!-- STEP 2: Consent -->
+    <div id="consent-step" class="step-hidden">
+      <div class="client-header">
+        <div class="client-logo" id="consent-client-logo">?</div>
+        <div>
+          <div class="client-name" id="consent-client-name">App</div>
+          <div class="client-sub">wants access to your account</div>
+        </div>
+      </div>
+
+      <p class="sub" id="consent-as-text" style="margin-bottom:16px;"></p>
+
+      <div class="consent-scope">
+        <div class="scope-item"><span class="check">&#10003;</span> Your name and email address</div>
+        <div class="scope-item"><span class="check">&#10003;</span> Your Prostar avatar (if set)</div>
+      </div>
+
+      <div class="consent-actions">
+        <button class="btn btn-secondary" id="deny-btn">Cancel</button>
+        <button class="btn btn-primary" id="allow-btn">Allow</button>
+      </div>
+
+      <p class="hint">You can remove this app's access anytime from your Prostar account settings.</p>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="/assets/prostar-client.js"></script>
+<script>
+(async function () {
+  const clientId = prostarQueryParam('client_id');
+  const redirectUri = prostarQueryParam('redirect_uri');
+  const state = prostarQueryParam('state') || '';
+  const scope = prostarQueryParam('scope') || 'profile email';
+
+  const loadingState = document.getElementById('loading-state');
+  const errorState = document.getElementById('error-state');
+  const errorDetail = document.getElementById('error-detail');
+  const pickerStep = document.getElementById('picker-step');
+  const consentStep = document.getElementById('consent-step');
+
+  function fail(message) {
+    loadingState.classList.add('step-hidden');
+    pickerStep.classList.add('step-hidden');
+    consentStep.classList.add('step-hidden');
+    errorDetail.textContent = message;
+    errorState.classList.remove('step-hidden');
+  }
+
+  if (!clientId || !redirectUri) {
+    fail('Missing client_id or redirect_uri. This link looks incomplete.');
+    return;
+  }
+
+  // Look up the client app's public info via a safe RPC-free select.
+  // (oauth_clients has no public policies, so we go through a tiny
+  // public view instead — see prostar_oauth_clients_public below.)
+  const { data: client, error: clientError } = await prostarSupabase
+    .from('prostar_oauth_clients_public')
+    .select('client_id, name, logo_url, redirect_uris')
+    .eq('client_id', clientId)
+    .single();
+
+  if (clientError || !client) {
+    fail('This app is not registered with Prostar.');
+    return;
+  }
+
+  if (!client.redirect_uris.includes(redirectUri)) {
+    fail('This app\'s redirect address does not match what\'s registered. For your safety, we stopped here.');
+    return;
+  }
+
+  document.getElementById('client-name').textContent = client.name;
+  document.getElementById('client-logo-initial').textContent = client.name.charAt(0).toUpperCase();
+  document.getElementById('consent-client-name').textContent = client.name;
+  document.getElementById('consent-client-logo').textContent = client.name.charAt(0).toUpperCase();
+
+  const accounts = prostarGetKnownAccounts();
+  loadingState.classList.add('step-hidden');
+
+  if (accounts.length === 0) {
+    // No local accounts at all — straight to login, then back here.
+    const params = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri, state, scope });
+    window.location.href = '/index.html?' + params.toString();
+    return;
+  }
+
+  // ---- STEP 1: render account picker ----
+  const accountList = document.getElementById('account-list');
+  accounts.forEach(acc => {
+    const row = document.createElement('div');
+    row.className = 'account-row';
+    row.innerHTML = `
+      <div class="avatar" style="background:${prostarAvatarColor(acc.userId)}">${prostarInitials(acc.displayName)}</div>
+      <div class="account-info">
+        <div class="account-name">${acc.displayName}</div>
+        <div class="account-email">${acc.email}</div>
+      </div>
+    `;
+    row.addEventListener('click', () => selectAccount(acc));
+    accountList.appendChild(row);
+  });
+
+  document.getElementById('add-account-row').addEventListener('click', () => {
+    const params = new URLSearchParams({ client_id: clientId, redirect_uri: redirectUri, state, scope });
+    window.location.href = '/index.html?' + params.toString();
+  });
+
+  pickerStep.classList.remove('step-hidden');
+
+  async function selectAccount(account) {
+    pickerStep.classList.add('step-hidden');
+    loadingState.classList.remove('step-hidden');
+    loadingState.querySelector('p').textContent = 'Signing in...';
+
+    const session = await prostarSwitchAccount(account.userId);
+    if (!session) {
+      fail('This account\'s session expired. Please sign in again.');
+      prostarForgetAccount(account.userId);
+      return;
+    }
+
+    loadingState.classList.add('step-hidden');
+
+    // Check if this app was already approved for this user.
+    const { data: existingApproval } = await prostarSupabase
+      .from('prostar_oauth_approvals')
+      .select('*')
+      .eq('user_id', account.userId)
+      .eq('client_id', clientId)
+      .maybeSingle();
+
+    if (existingApproval) {
+      await issueCodeAndRedirect(account.userId);
+    } else {
+      document.getElementById('consent-as-text').textContent = `Signed in as ${account.email}`;
+      consentStep.classList.remove('step-hidden');
+
+      document.getElementById('allow-btn').onclick = async () => {
+        await prostarSupabase.from('prostar_oauth_approvals').upsert({
+          user_id: account.userId,
+          client_id: clientId,
+          scope
+        });
+        await issueCodeAndRedirect(account.userId);
+      };
+
+      document.getElementById('deny-btn').onclick = () => {
+        const denyParams = new URLSearchParams({ error: 'access_denied', state });
+        window.location.href = redirectUri + '?' + denyParams.toString();
+      };
+    }
+  }
+
+  async function issueCodeAndRedirect(userId) {
+    consentStep.classList.add('step-hidden');
+    loadingState.classList.remove('step-hidden');
+    loadingState.querySelector('p').textContent = 'Redirecting...';
+
+    // Generate a random code client-side, then store it via a secured
+    // insert. Row is only readable/redeemable by the token Edge Function
+    // (service role), so a random 32-byte code is our security boundary.
+    const code = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+
+    const { data: { session } } = await prostarSupabase.auth.getSession();
+
+    const resp = await fetch(`${PROSTAR_SUPABASE_URL}/functions/v1/prostar-issue-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ code, client_id: clientId, redirect_uri: redirectUri, scope })
+    });
+
+    if (!resp.ok) {
+      fail('Could not complete sign-in. Please try again.');
+      return;
+    }
+
+    const redirectParams = new URLSearchParams({ code, state });
+    window.location.href = redirectUri + '?' + redirectParams.toString();
+  }
+})();
+</script>
+
+</body>
+</html>

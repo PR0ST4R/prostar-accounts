@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enter your code — Prostar</title>
+<link rel="stylesheet" href="/assets/prostar-base.css">
+</head>
+<body>
+
+<div class="auth-shell">
+  <div class="wordmark"><span class="dot"></span>Prostar</div>
+
+  <div class="card">
+    <h1>Enter your code</h1>
+    <p class="sub" id="sub-text">We sent a 6-digit code to your email. It expires shortly, so enter it soon.</p>
+
+    <div id="error-slot"></div>
+
+    <form id="verify-form">
+      <div class="field">
+        <label for="otp">6-digit code</label>
+        <input type="text" id="otp" class="otp-input" placeholder="••••••" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autofocus>
+      </div>
+      <button type="submit" class="btn btn-primary" id="submit-btn">
+        Verify and continue
+      </button>
+    </form>
+
+    <p class="hint">
+      Didn't get it? <a href="#" id="resend-link">Send a new code</a>
+    </p>
+  </div>
+
+  <p class="footer-note"><a href="/index.html" id="back-link" style="color:inherit;text-decoration:none;">&larr; Use a different email</a></p>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="/assets/prostar-client.js"></script>
+<script>
+  const email = prostarQueryParam('email');
+  const subText = document.getElementById('sub-text');
+  const backLink = document.getElementById('back-link');
+  const errorSlot = document.getElementById('error-slot');
+  const form = document.getElementById('verify-form');
+  const otpInput = document.getElementById('otp');
+  const submitBtn = document.getElementById('submit-btn');
+  const resendLink = document.getElementById('resend-link');
+
+  if (!email) {
+    window.location.href = '/index.html';
+  } else {
+    subText.textContent = `We sent a 6-digit code to ${email}. It expires shortly, so enter it soon.`;
+    // Keep OAuth params intact when going back
+    const params = new URLSearchParams(window.location.search);
+    params.delete('email');
+    backLink.href = '/index.html?' + params.toString();
+  }
+
+  function showError(msg) {
+    errorSlot.innerHTML = `<div class="error-msg">${msg}</div>`;
+  }
+
+  // After successful login, resume the OAuth flow if one was in progress,
+  // otherwise go to the dashboard.
+  function redirectAfterLogin() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('client_id') && params.get('redirect_uri')) {
+      const authorizeParams = new URLSearchParams();
+      ['client_id', 'redirect_uri', 'state', 'scope'].forEach(key => {
+        if (params.get(key)) authorizeParams.set(key, params.get(key));
+      });
+      window.location.href = '/oauth/authorize.html?' + authorizeParams.toString();
+    } else {
+      window.location.href = '/dashboard/index.html';
+    }
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorSlot.innerHTML = '';
+    const code = otpInput.value.trim();
+    if (code.length !== 6) {
+      showError('Enter the full 6-digit code.');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> Verifying...';
+
+    const { data, error } = await prostarVerifyOtp(email, code);
+
+    if (error || !data.session) {
+      showError(error?.message || 'That code is invalid or expired. Try again or request a new one.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Verify and continue';
+      return;
+    }
+
+    await prostarFinalizeLogin(data.session);
+    redirectAfterLogin();
+  });
+
+  resendLink.addEventListener('click', async (e) => {
+    e.preventDefault();
+    errorSlot.innerHTML = '';
+    resendLink.textContent = 'Sending...';
+    const { error } = await prostarSendOtp(email);
+    if (error) {
+      showError(error.message || 'Could not resend code.');
+    } else {
+      resendLink.textContent = 'Code sent';
+      setTimeout(() => { resendLink.textContent = 'Send a new code'; }, 4000);
+    }
+  });
+</script>
+
+</body>
+</html>
