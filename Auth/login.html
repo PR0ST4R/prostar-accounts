@@ -11,24 +11,68 @@
 <div class="auth-shell">
   <div class="wordmark"><span class="dot"></span>Prostar</div>
 
-  <div class="card">
+  <div class="card" id="choice-card">
     <h1>Log in</h1>
-    <p class="sub">Enter your email and we'll send you a one-time code to sign in.</p>
+    <p class="sub">Choose how you'd like to sign in.</p>
 
-    <div id="error-slot"></div>
-
-    <form id="login-form">
-      <div class="field">
-        <label for="email">Email address</label>
-        <input type="email" id="email" placeholder="you@example.com" required autocomplete="email" autofocus>
+    <div class="choice-group">
+      <div class="choice-card selected" data-mode="code">
+        <div class="choice-radio"></div>
+        <div>
+          <div class="choice-label">Email code</div>
+          <div class="choice-desc">We'll send a 6-digit code to your inbox</div>
+        </div>
       </div>
-      <button type="submit" class="btn btn-primary" id="submit-btn">
-        Send code
-      </button>
-    </form>
+      <div class="choice-card" data-mode="password">
+        <div class="choice-radio"></div>
+        <div>
+          <div class="choice-label">Password</div>
+          <div class="choice-desc">Sign in with your email and password</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="continue-btn">Continue</button>
 
     <p class="hint">
       Don't have a Prostar account? <a href="#" id="signup-link">Create one</a>
+    </p>
+  </div>
+
+  <!-- Email code form -->
+  <div class="card" id="code-form-card" style="display:none;">
+    <h1>Log in with a code</h1>
+    <p class="sub">Enter your email and we'll send you a one-time code.</p>
+    <div id="code-error-slot"></div>
+    <form id="code-form">
+      <div class="field">
+        <label for="code-email">Email address</label>
+        <input type="email" id="code-email" placeholder="you@example.com" required autocomplete="email" autofocus>
+      </div>
+      <button type="submit" class="btn btn-primary" id="code-submit-btn">Send code</button>
+    </form>
+    <p class="hint"><a href="#" id="back-from-code">&larr; Choose a different way to log in</a></p>
+  </div>
+
+  <!-- Password form -->
+  <div class="card" id="password-form-card" style="display:none;">
+    <h1>Log in with password</h1>
+    <p class="sub">Enter your email and password.</p>
+    <div id="password-error-slot"></div>
+    <form id="password-form">
+      <div class="field">
+        <label for="pw-email">Email address</label>
+        <input type="email" id="pw-email" placeholder="you@example.com" required autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="pw-password">Password</label>
+        <input type="password" id="pw-password" placeholder="Your password" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary" id="password-submit-btn">Log in</button>
+    </form>
+    <p class="hint">
+      <a href="#" id="forgot-password-link">Forgot your password?</a><br><br>
+      <a href="#" id="back-from-password">&larr; Choose a different way to log in</a>
     </p>
   </div>
 
@@ -38,45 +82,66 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="/assets/prostar-client.js"></script>
 <script>
-  const form = document.getElementById('login-form');
-  const emailInput = document.getElementById('email');
-  const submitBtn = document.getElementById('submit-btn');
-  const errorSlot = document.getElementById('error-slot');
-
   const params = new URLSearchParams(window.location.search);
   const qs = params.toString() ? '?' + params.toString() : '';
+
   document.getElementById('back-link').href = '/index.html' + qs;
   document.getElementById('signup-link').href = '/auth/signup.html' + qs;
 
-  function showError(msg) {
-    errorSlot.innerHTML = `<div class="error-msg">${msg}</div>`;
-  }
+  const choiceCard = document.getElementById('choice-card');
+  const codeFormCard = document.getElementById('code-form-card');
+  const passwordFormCard = document.getElementById('password-form-card');
+  const choiceCards = document.querySelectorAll('.choice-card');
+  let selectedMode = 'code';
 
-  form.addEventListener('submit', async (e) => {
+  choiceCards.forEach(card => {
+    card.addEventListener('click', () => {
+      choiceCards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      selectedMode = card.dataset.mode;
+    });
+  });
+
+  document.getElementById('continue-btn').addEventListener('click', () => {
+    choiceCard.style.display = 'none';
+    if (selectedMode === 'code') {
+      codeFormCard.style.display = 'block';
+    } else {
+      passwordFormCard.style.display = 'block';
+    }
+  });
+
+  function backToChoice() {
+    codeFormCard.style.display = 'none';
+    passwordFormCard.style.display = 'none';
+    choiceCard.style.display = 'block';
+  }
+  document.getElementById('back-from-code').addEventListener('click', (e) => { e.preventDefault(); backToChoice(); });
+  document.getElementById('back-from-password').addEventListener('click', (e) => { e.preventDefault(); backToChoice(); });
+
+  // ---- Email code flow ----
+  const codeForm = document.getElementById('code-form');
+  const codeErrorSlot = document.getElementById('code-error-slot');
+
+  codeForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    errorSlot.innerHTML = '';
-    const email = emailInput.value.trim();
+    codeErrorSlot.innerHTML = '';
+    const email = document.getElementById('code-email').value.trim();
     if (!email) return;
 
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span> Sending code...';
+    const btn = document.getElementById('code-submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Sending code...';
 
-    // shouldCreateUser: false — this is the LOGIN path, not signup.
-    // If no account exists for this email, we tell them to sign up
-    // instead rather than silently creating one.
     const { error } = await prostarSupabase.auth.signInWithOtp({
       email,
       options: { shouldCreateUser: false }
     });
 
     if (error) {
-      if (error.message && error.message.toLowerCase().includes('signup')) {
-        showError('No Prostar account found for that email. <a href="/auth/signup.html' + qs.replace('?','&').replace('&','?') + '" style="color:var(--accent);">Create one instead</a>.');
-      } else {
-        showError(error.message || 'Something went wrong sending your code. Try again.');
-      }
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Send code';
+      codeErrorSlot.innerHTML = `<div class="error-msg">${error.message || 'Something went wrong. Try again.'}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Send code';
       return;
     }
 
@@ -84,6 +149,51 @@
     verifyParams.set('email', email);
     verifyParams.set('mode', 'login');
     window.location.href = '/auth/verify.html?' + verifyParams.toString();
+  });
+
+  // ---- Password flow ----
+  const passwordForm = document.getElementById('password-form');
+  const passwordErrorSlot = document.getElementById('password-error-slot');
+
+  function redirectAfterLogin() {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('client_id') && p.get('redirect_uri')) {
+      window.location.href = '/oauth/authorize.html?' + p.toString();
+    } else {
+      window.location.href = '/dashboard/index.html';
+    }
+  }
+
+  passwordForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    passwordErrorSlot.innerHTML = '';
+    const email = document.getElementById('pw-email').value.trim();
+    const password = document.getElementById('pw-password').value;
+    if (!email || !password) return;
+
+    const btn = document.getElementById('password-submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Logging in...';
+
+    const { data, error } = await prostarSignInWithPassword(email, password);
+
+    if (error || !data.session) {
+      passwordErrorSlot.innerHTML = `<div class="error-msg">${error?.message === 'Invalid login credentials' ? 'Incorrect email or password.' : (error?.message || 'Could not log in.')}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Log in';
+      return;
+    }
+
+    await prostarFinalizeLogin(data.session);
+    redirectAfterLogin();
+  });
+
+  document.getElementById('forgot-password-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    const p = new URLSearchParams(window.location.search);
+    const email = document.getElementById('pw-email').value.trim();
+    if (email) p.set('email', email);
+    window.location.href = '/auth/forgot-password.html?' + p.toString();
   });
 </script>
 

@@ -3,126 +3,475 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Enter your code — Prostar</title>
+<title>Your Prostar account</title>
 <link rel="stylesheet" href="/assets/prostar-base.css">
+<style>
+  .shell {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  .rail {
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .rail .wordmark { font-size: 18px; margin-bottom: 28px; padding: 0 4px; }
+
+  .active-account {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--surface-raised);
+    border-radius: var(--radius-md);
+    margin-bottom: 20px;
+  }
+
+  .avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 15px; color: #06231A;
+    flex-shrink: 0;
+  }
+
+  .active-account-info { min-width: 0; }
+  .active-account-name { font-size: 14px; font-weight: 600; }
+  .active-account-email {
+    font-size: 12px; color: var(--text-muted);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  nav.tabs { display: flex; flex-direction: column; gap: 2px; margin-bottom: 24px; }
+  .tab-link {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 14px; font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .tab-link:hover { background: var(--surface-raised); color: var(--text); }
+  .tab-link.active { background: var(--accent-glow); color: var(--accent); }
+
+  .account-switcher-section { margin-top: auto; }
+  .switcher-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); margin-bottom: 10px; padding: 0 4px; }
+
+  .switch-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .switch-row:hover { background: var(--surface-raised); }
+  .switch-row .avatar { width: 28px; height: 28px; font-size: 12px; }
+  .switch-row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .add-account-btn {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .add-account-btn:hover { background: var(--surface-raised); color: var(--text); }
+  .add-account-btn .plus { width:28px; height:28px; border-radius:50%; border:1px dashed var(--border-light); display:flex; align-items:center; justify-content:center; }
+
+  .signout-row { margin-top: 12px; }
+
+  main {
+    flex: 1;
+    padding: 48px;
+    max-width: 720px;
+  }
+
+  main h1 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    margin: 0 0 4px;
+  }
+  main p.page-sub { color: var(--text-muted); font-size: 14px; margin: 0 0 36px; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  .panel h2 { font-family: var(--font-display); font-size: 16px; margin: 0 0 20px; }
+
+  .profile-row { display: flex; align-items: center; gap: 20px; margin-bottom: 24px; }
+  .profile-row .avatar { width: 72px; height: 72px; font-size: 26px; }
+
+  .field-row { margin-bottom: 18px; }
+  .field-row label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+  .field-row .value { font-size: 15px; }
+
+  .app-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 0;
+  }
+  .app-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+  .app-logo {
+    width: 36px; height: 36px; border-radius: var(--radius-sm);
+    background: var(--surface-raised); border: 1px solid var(--border-light);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; color: var(--accent);
+    flex-shrink: 0;
+  }
+  .app-info { flex: 1; }
+  .app-name { font-size: 14px; font-weight: 600; }
+  .app-meta { font-size: 12px; color: var(--text-faint); font-family: var(--font-mono); }
+
+  .empty-state { color: var(--text-faint); font-size: 13px; padding: 20px 0; text-align: center; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+</style>
 </head>
 <body>
 
-<div class="auth-shell">
-  <div class="wordmark"><span class="dot"></span>Prostar</div>
+<div class="shell">
+  <div class="rail">
+    <div class="wordmark"><span class="dot"></span>Prostar</div>
 
-  <div class="card">
-    <h1>Enter your code</h1>
-    <p class="sub" id="sub-text">We sent a 6-digit code to your email. It expires shortly, so enter it soon.</p>
-
-    <div id="error-slot"></div>
-
-    <form id="verify-form">
-      <div class="field">
-        <label for="otp">6-digit code</label>
-        <input type="text" id="otp" class="otp-input" placeholder="••••••" inputmode="numeric" pattern="[0-9]*" maxlength="6" required autofocus>
+    <div class="active-account" id="active-account-display">
+      <div class="avatar" id="active-avatar">?</div>
+      <div class="active-account-info">
+        <div class="active-account-name" id="active-name">Loading...</div>
+        <div class="active-account-email" id="active-email"></div>
       </div>
-      <button type="submit" class="btn btn-primary" id="submit-btn">
-        Verify and continue
-      </button>
-    </form>
+    </div>
 
-    <p class="hint">
-      Didn't get it? <a href="#" id="resend-link">Send a new code</a>
-    </p>
+    <nav class="tabs">
+      <div class="tab-link active" data-tab="profile">Profile</div>
+      <div class="tab-link" data-tab="apps">Connected apps</div>
+      <div class="tab-link" data-tab="security">Security</div>
+    </nav>
+
+    <div class="account-switcher-section">
+      <div class="switcher-label">Accounts</div>
+      <div id="switcher-list"></div>
+      <div class="add-account-btn" id="add-account-btn">
+        <div class="plus">+</div> Add another account
+      </div>
+      <div class="signout-row">
+        <button class="btn btn-ghost" id="signout-btn" style="width:auto;padding:8px 10px;font-size:13px;">Sign out</button>
+      </div>
+    </div>
   </div>
 
-  <p class="footer-note"><a href="#" id="back-link" style="color:inherit;text-decoration:none;">&larr; Use a different email</a></p>
+  <main>
+    <div class="tab-panel active" id="tab-profile">
+      <h1>Your Prostar account</h1>
+      <p class="page-sub">Manage the info you use across every site that supports Prostar.</p>
+
+      <div class="panel">
+        <div class="profile-row">
+          <div class="avatar" id="profile-avatar" style="width:72px;height:72px;font-size:26px;">?</div>
+          <div>
+            <div style="font-size:18px;font-weight:600;" id="profile-name">—</div>
+            <div style="font-size:13px;color:var(--text-muted);" id="profile-email">—</div>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label>Display name</label>
+          <input type="text" id="display-name-input" placeholder="Your name">
+        </div>
+
+        <button class="btn btn-primary" id="save-profile-btn" style="width:auto;padding:10px 24px;">Save changes</button>
+        <div id="profile-msg" style="margin-top:14px;"></div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-apps">
+      <h1>Connected apps</h1>
+      <p class="page-sub">Sites you've signed into using "Continue with Prostar."</p>
+
+      <div class="panel">
+        <h2>Approved apps</h2>
+        <div id="apps-list">
+          <div class="empty-state">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-security">
+      <h1>Security</h1>
+      <p class="page-sub">Manage how you sign in and keep your account protected.</p>
+
+      <div class="panel">
+        <h2>Change password</h2>
+        <div id="change-password-msg"></div>
+        <form id="change-password-form">
+          <div class="field-row">
+            <label>New password</label>
+            <input type="password" id="new-password-input" placeholder="At least 8 characters" minlength="8">
+          </div>
+          <div class="field-row">
+            <label>Confirm new password</label>
+            <input type="password" id="confirm-password-input" placeholder="Re-enter your password" minlength="8">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:auto;padding:10px 24px;">Update password</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <h2>Recent activity</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:-12px;margin-bottom:16px;">
+          A log of sign-ins to this account.
+        </p>
+        <div id="activity-list"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Signed-in accounts on this device</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:-8px;">
+          Sign out of an account you no longer use on this device.
+        </p>
+        <div id="security-accounts-list" style="margin-top:16px;"></div>
+      </div>
+    </div>
+  </main>
 </div>
 
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script src="/assets/prostar-client.js"></script>
 <script>
-  const email = prostarQueryParam('email');
-  const mode = prostarQueryParam('mode') || 'login'; // 'login' or 'signup'
-  const subText = document.getElementById('sub-text');
-  const backLink = document.getElementById('back-link');
-  const errorSlot = document.getElementById('error-slot');
-  const form = document.getElementById('verify-form');
-  const otpInput = document.getElementById('otp');
-  const submitBtn = document.getElementById('submit-btn');
-  const resendLink = document.getElementById('resend-link');
-
-  if (!email) {
+(async function () {
+  const activeUserId = prostarGetActiveUserId();
+  if (!activeUserId) {
     window.location.href = '/index.html';
-  } else {
-    subText.textContent = `We sent a 6-digit code to ${email}. It expires shortly, so enter it soon.`;
-    const params = new URLSearchParams(window.location.search);
-    params.delete('email');
-    backLink.href = (mode === 'signup' ? '/auth/signup.html' : '/auth/login.html') + '?' + params.toString();
+    return;
   }
 
-  function showError(msg) {
-    errorSlot.innerHTML = `<div class="error-msg">${msg}</div>`;
+  const { data: { session } } = await prostarSupabase.auth.getSession();
+  if (!session) {
+    window.location.href = '/index.html';
+    return;
   }
 
-  // After verifying: signup mode goes to set-password; login mode
-  // resumes any in-progress OAuth flow, or goes to the dashboard.
-  function redirectAfterVerify() {
-    const params = new URLSearchParams(window.location.search);
+  const { data: profile } = await prostarSupabase
+    .from('prostar_profiles')
+    .select('*')
+    .eq('id', activeUserId)
+    .single();
 
-    if (mode === 'signup') {
-      const setPasswordParams = new URLSearchParams();
-      ['client_id', 'redirect_uri', 'state', 'scope'].forEach(key => {
-        if (params.get(key)) setPasswordParams.set(key, params.get(key));
-      });
-      window.location.href = '/auth/set-password.html?' + setPasswordParams.toString();
-      return;
-    }
+  const displayName = profile?.display_name || session.user.email.split('@')[0];
+  const email = session.user.email;
 
-    if (params.get('client_id') && params.get('redirect_uri')) {
-      const authorizeParams = new URLSearchParams();
-      ['client_id', 'redirect_uri', 'state', 'scope'].forEach(key => {
-        if (params.get(key)) authorizeParams.set(key, params.get(key));
-      });
-      window.location.href = '/oauth/authorize.html?' + authorizeParams.toString();
-    } else {
-      window.location.href = '/dashboard/index.html';
-    }
-  }
+  document.getElementById('active-name').textContent = displayName;
+  document.getElementById('active-email').textContent = email;
+  document.getElementById('active-avatar').textContent = prostarInitials(displayName);
+  document.getElementById('active-avatar').style.background = prostarAvatarColor(activeUserId);
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    errorSlot.innerHTML = '';
-    const code = otpInput.value.trim();
-    if (code.length !== 6) {
-      showError('Enter the full 6-digit code.');
-      return;
-    }
+  document.getElementById('profile-name').textContent = displayName;
+  document.getElementById('profile-email').textContent = email;
+  document.getElementById('profile-avatar').textContent = prostarInitials(displayName);
+  document.getElementById('profile-avatar').style.background = prostarAvatarColor(activeUserId);
+  document.getElementById('display-name-input').value = displayName;
 
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span> Verifying...';
-
-    const { data, error } = await prostarVerifyOtp(email, code);
-
-    if (error || !data.session) {
-      showError(error?.message || 'That code is invalid or expired. Try again or request a new one.');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Verify and continue';
-      return;
-    }
-
-    await prostarFinalizeLogin(data.session);
-    redirectAfterVerify();
+  // ---- Tabs ----
+  document.querySelectorAll('.tab-link').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
   });
 
-  resendLink.addEventListener('click', async (e) => {
-    e.preventDefault();
-    errorSlot.innerHTML = '';
-    resendLink.textContent = 'Sending...';
-    const { error } = await prostarSendOtp(email);
+  // ---- Save profile ----
+  document.getElementById('save-profile-btn').addEventListener('click', async () => {
+    const newName = document.getElementById('display-name-input').value.trim();
+    const msgSlot = document.getElementById('profile-msg');
+    if (!newName) return;
+
+    const { error } = await prostarSupabase
+      .from('prostar_profiles')
+      .update({ display_name: newName, updated_at: new Date().toISOString() })
+      .eq('id', activeUserId);
+
     if (error) {
-      showError(error.message || 'Could not resend code.');
+      msgSlot.innerHTML = `<div class="error-msg">Could not save changes.</div>`;
     } else {
-      resendLink.textContent = 'Code sent';
-      setTimeout(() => { resendLink.textContent = 'Send a new code'; }, 4000);
+      msgSlot.innerHTML = `<div class="success-msg">Saved.</div>`;
+      document.getElementById('active-name').textContent = newName;
+      document.getElementById('profile-name').textContent = newName;
+      // keep local account store in sync
+      prostarRememberAccount({ userId: activeUserId, email, displayName: newName, session });
+      setTimeout(() => { msgSlot.innerHTML = ''; }, 3000);
     }
   });
+
+  // ---- Connected apps ----
+  const { data: approvals } = await prostarSupabase
+    .from('prostar_oauth_approvals')
+    .select('client_id, approved_at, prostar_oauth_clients_public(name, logo_url)')
+    .eq('user_id', activeUserId);
+
+  const appsList = document.getElementById('apps-list');
+  if (!approvals || approvals.length === 0) {
+    appsList.innerHTML = '<div class="empty-state">You haven\'t connected any apps yet.</div>';
+  } else {
+    appsList.innerHTML = '';
+    approvals.forEach(a => {
+      const name = a.prostar_oauth_clients_public?.name || a.client_id;
+      const row = document.createElement('div');
+      row.className = 'app-row';
+      row.innerHTML = `
+        <div class="app-logo">${name.charAt(0).toUpperCase()}</div>
+        <div class="app-info">
+          <div class="app-name">${name}</div>
+          <div class="app-meta">Connected ${new Date(a.approved_at).toLocaleDateString()}</div>
+        </div>
+        <button class="btn btn-danger" style="width:auto;padding:8px 16px;font-size:13px;" data-client-id="${a.client_id}">Remove access</button>
+      `;
+      row.querySelector('button').addEventListener('click', async (e) => {
+        const clientId = e.target.dataset.clientId;
+        await prostarSupabase
+          .from('prostar_oauth_approvals')
+          .delete()
+          .eq('user_id', activeUserId)
+          .eq('client_id', clientId);
+        row.remove();
+        if (appsList.children.length === 0) {
+          appsList.innerHTML = '<div class="empty-state">You haven\'t connected any apps yet.</div>';
+        }
+      });
+      appsList.appendChild(row);
+    });
+  }
+
+  // ---- Change password ----
+  document.getElementById('change-password-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msgSlot = document.getElementById('change-password-msg');
+    msgSlot.innerHTML = '';
+    const newPw = document.getElementById('new-password-input').value;
+    const confirmPw = document.getElementById('confirm-password-input').value;
+
+    if (newPw.length < 8) {
+      msgSlot.innerHTML = '<div class="error-msg">Password must be at least 8 characters.</div>';
+      return;
+    }
+    if (newPw !== confirmPw) {
+      msgSlot.innerHTML = '<div class="error-msg">Those passwords don\'t match.</div>';
+      return;
+    }
+
+    const { error } = await prostarSupabase.auth.updateUser({ password: newPw });
+    if (error) {
+      msgSlot.innerHTML = `<div class="error-msg">${error.message || 'Could not update password.'}</div>`;
+    } else {
+      msgSlot.innerHTML = '<div class="success-msg">Password updated.</div>';
+      document.getElementById('new-password-input').value = '';
+      document.getElementById('confirm-password-input').value = '';
+    }
+  });
+
+  // ---- Recent activity (lightweight, device-local) ----
+  // A full server-side audit log is a natural next addition; for now
+  // this reflects sign-ins recorded on this device via the local
+  // multi-account store, which is enough to make the account feel
+  // monitored without needing a new backend table yet.
+  function renderActivity() {
+    const accounts = prostarGetKnownAccounts();
+    const activityList = document.getElementById('activity-list');
+    const mine = accounts.find(a => a.userId === activeUserId);
+    const events = [];
+    if (mine) {
+      events.push({ label: 'Signed in on this device', time: mine.lastActive });
+    }
+    events.push({ label: 'Account created', time: new Date(profile?.created_at || Date.now()).getTime() });
+
+    events.sort((a, b) => b.time - a.time);
+
+    activityList.innerHTML = events.map(ev => `
+      <div class="app-row">
+        <div class="app-logo" style="color:var(--accent-bright);">&#9679;</div>
+        <div class="app-info">
+          <div class="app-name">${ev.label}</div>
+          <div class="app-meta" style="font-family:var(--font-body);">${new Date(ev.time).toLocaleString()}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+  renderActivity();
+
+  // ---- Account switcher (rail + security tab) ----
+  function renderAccountLists() {
+    const accounts = prostarGetKnownAccounts();
+    const switcherList = document.getElementById('switcher-list');
+    const securityList = document.getElementById('security-accounts-list');
+    switcherList.innerHTML = '';
+    securityList.innerHTML = '';
+
+    accounts.filter(a => a.userId !== activeUserId).forEach(acc => {
+      const row = document.createElement('div');
+      row.className = 'switch-row';
+      row.innerHTML = `
+        <div class="avatar" style="background:${prostarAvatarColor(acc.userId)}">${prostarInitials(acc.displayName)}</div>
+        <div class="switch-row-name">${acc.displayName}</div>
+      `;
+      row.addEventListener('click', async () => {
+        const s = await prostarSwitchAccount(acc.userId);
+        if (s) window.location.reload();
+      });
+      switcherList.appendChild(row);
+    });
+
+    accounts.forEach(acc => {
+      const row = document.createElement('div');
+      row.className = 'app-row';
+      row.innerHTML = `
+        <div class="avatar" style="background:${prostarAvatarColor(acc.userId)}">${prostarInitials(acc.displayName)}</div>
+        <div class="app-info">
+          <div class="app-name">${acc.displayName}${acc.userId === activeUserId ? ' (this session)' : ''}</div>
+          <div class="app-meta" style="font-family:var(--font-body);">${acc.email}</div>
+        </div>
+        <button class="btn btn-danger" style="width:auto;padding:8px 16px;font-size:13px;">Sign out</button>
+      `;
+      row.querySelector('button').addEventListener('click', async () => {
+        if (acc.userId === activeUserId) {
+          await prostarSignOutCurrent();
+        } else {
+          prostarForgetAccount(acc.userId);
+        }
+        window.location.reload();
+      });
+      securityList.appendChild(row);
+    });
+  }
+  renderAccountLists();
+
+  document.getElementById('add-account-btn').addEventListener('click', () => {
+    window.location.href = '/index.html';
+  });
+
+  document.getElementById('signout-btn').addEventListener('click', async () => {
+    await prostarSignOutCurrent();
+    const remaining = prostarGetKnownAccounts();
+    if (remaining.length > 0) {
+      await prostarSwitchAccount(remaining[0].userId);
+      window.location.reload();
+    } else {
+      window.location.href = '/index.html';
+    }
+  });
+})();
 </script>
 
 </body>

@@ -171,6 +171,35 @@ async function prostarFinalizeLogin(session) {
 }
 
 // ---------------------------------------------------------------------
+// PASSWORD-BASED SIGN-IN
+// ---------------------------------------------------------------------
+
+async function prostarSignInWithPassword(email, password) {
+  const { data, error } = await prostarSupabase.auth.signInWithPassword({
+    email,
+    password
+  });
+  return { data, error };
+}
+
+// Sends a password-reset code (uses the same OTP mechanism, verified
+// with type 'recovery'). The Supabase "Reset Password" email template
+// should use {{ .Token }} the same way the signup one does.
+async function prostarSendPasswordResetCode(email) {
+  const { error } = await prostarSupabase.auth.resetPasswordForEmail(email);
+  return { error };
+}
+
+async function prostarVerifyPasswordResetCode(email, token) {
+  const { data, error } = await prostarSupabase.auth.verifyOtp({
+    email,
+    token,
+    type: 'recovery'
+  });
+  return { data, error };
+}
+
+// ---------------------------------------------------------------------
 // SIGN OUT
 // ---------------------------------------------------------------------
 
