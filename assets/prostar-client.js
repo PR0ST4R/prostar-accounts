@@ -6,8 +6,8 @@
 // =====================================================================
 
 // ---- CONFIG: replace with your real Supabase project values ----
-const PROSTAR_SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const PROSTAR_SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const PROSTAR_SUPABASE_URL = 'https://agechujhqhbmuenncwtb.supabase.co';
+const PROSTAR_SUPABASE_ANON_KEY = 'sb_publishable_HbCn6NL--T-Q6556_l0SIw_7QBgMUx3';
 
 const prostarSupabase = window.supabase.createClient(
   PROSTAR_SUPABASE_URL,

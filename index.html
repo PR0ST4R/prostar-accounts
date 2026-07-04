@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sign in — Prostar</title>
+<title>Prostar</title>
 <link rel="stylesheet" href="/assets/prostar-base.css">
 </head>
 <body>
@@ -12,64 +12,42 @@
   <div class="wordmark"><span class="dot"></span>Prostar</div>
 
   <div class="card">
-    <h1>Sign in</h1>
-    <p class="sub">Use your email to sign in or create a Prostar account. We'll send you a one-time code — no password needed.</p>
+    <h1>Welcome</h1>
+    <p class="sub">Sign in to your Prostar account, or create a new one to get started.</p>
 
-    <div id="error-slot"></div>
+    <button class="btn btn-primary" id="login-btn" style="margin-bottom:12px;">
+      Log in
+    </button>
+    <button class="btn btn-secondary" id="signup-btn">
+      Create account
+    </button>
 
-    <form id="login-form">
-      <div class="field">
-        <label for="email">Email address</label>
-        <input type="email" id="email" placeholder="you@example.com" required autocomplete="email" autofocus>
-      </div>
-      <button type="submit" class="btn btn-primary" id="submit-btn">
-        Continue
-      </button>
-    </form>
+    <div class="divider">or</div>
 
-    <p class="hint">
-      By continuing, you agree to Prostar's account terms. Your email is only used for sign-in and account recovery.
+    <button class="btn btn-secondary" id="google-btn" disabled title="Coming soon">
+      Continue with Google
+    </button>
+
+    <p class="hint" style="margin-top:20px;">
+      Google sign-in is coming soon.
     </p>
   </div>
 
   <p class="footer-note">One Prostar account signs you in everywhere it's supported.</p>
 </div>
 
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="/assets/prostar-client.js"></script>
 <script>
-  const form = document.getElementById('login-form');
-  const emailInput = document.getElementById('email');
-  const submitBtn = document.getElementById('submit-btn');
-  const errorSlot = document.getElementById('error-slot');
+  // Preserve any OAuth params (client_id, redirect_uri, state, scope)
+  // across the fork so the flow can resume /authorize afterward.
+  const params = new URLSearchParams(window.location.search);
+  const qs = params.toString() ? '?' + params.toString() : '';
 
-  function showError(msg) {
-    errorSlot.innerHTML = `<div class="error-msg">${msg}</div>`;
-  }
+  document.getElementById('login-btn').addEventListener('click', () => {
+    window.location.href = '/auth/login.html' + qs;
+  });
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    errorSlot.innerHTML = '';
-    const email = emailInput.value.trim();
-    if (!email) return;
-
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span> Sending code...';
-
-    const { error } = await prostarSendOtp(email);
-
-    if (error) {
-      showError(error.message || 'Something went wrong sending your code. Try again.');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Continue';
-      return;
-    }
-
-    // Preserve any OAuth params (client_id, redirect_uri, state) across
-    // the verify step, so we can resume /authorize after login.
-    const params = new URLSearchParams(window.location.search);
-    params.set('email', email);
-    window.location.href = '/auth/verify.html?' + params.toString();
+  document.getElementById('signup-btn').addEventListener('click', () => {
+    window.location.href = '/auth/signup.html' + qs;
   });
 </script>
 
