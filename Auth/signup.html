@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create account — Prostar</title>
+<link rel="stylesheet" href="/assets/prostar-base.css">
+</head>
+<body>
+
+<div class="auth-shell">
+  <div class="wordmark"><span class="dot"></span>Prostar</div>
+
+  <div class="card">
+    <h1>Create your account</h1>
+    <p class="sub">Enter your email. We'll send a code to verify it's really you, then you'll set a password.</p>
+
+    <div id="error-slot"></div>
+
+    <form id="signup-form">
+      <div class="field">
+        <label for="email">Email address</label>
+        <input type="email" id="email" placeholder="you@example.com" required autocomplete="email" autofocus>
+      </div>
+      <button type="submit" class="btn btn-primary" id="submit-btn">
+        Send verification code
+      </button>
+    </form>
+
+    <p class="hint">
+      Already have a Prostar account? <a href="#" id="login-link">Log in</a>
+    </p>
+  </div>
+
+  <p class="footer-note"><a href="#" id="back-link" style="color:inherit;text-decoration:none;">&larr; Back</a></p>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="/assets/prostar-client.js"></script>
+<script>
+  const form = document.getElementById('signup-form');
+  const emailInput = document.getElementById('email');
+  const submitBtn = document.getElementById('submit-btn');
+  const errorSlot = document.getElementById('error-slot');
+
+  const params = new URLSearchParams(window.location.search);
+  const qs = params.toString() ? '?' + params.toString() : '';
+  document.getElementById('back-link').href = '/index.html' + qs;
+  document.getElementById('login-link').href = '/auth/login.html' + qs;
+
+  function showError(msg) {
+    errorSlot.innerHTML = `<div class="error-msg">${msg}</div>`;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorSlot.innerHTML = '';
+    const email = emailInput.value.trim();
+    if (!email) return;
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> Sending code...';
+
+    // shouldCreateUser: true — this is the SIGN-UP path.
+    const { error } = await prostarSupabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true }
+    });
+
+    if (error) {
+      showError(error.message || 'Something went wrong sending your code. Try again.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send verification code';
+      return;
+    }
+
+    const verifyParams = new URLSearchParams(window.location.search);
+    verifyParams.set('email', email);
+    verifyParams.set('mode', 'signup');
+    window.location.href = '/auth/verify.html?' + verifyParams.toString();
+  });
+</script>
+
+</body>
+</html>
