@@ -243,6 +243,77 @@
         </p>
         <div id="security-accounts-list" style="margin-top:16px;"></div>
       </div>
+      <div class="panel" style="border-color: var(--danger-dim);">
+        <h2 style="color: var(--danger);">Danger zone</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:-12px;margin-bottom:16px;">
+          Permanently delete your Prostar account. This removes your profile, disconnects every app you've approved, and cannot be undone.
+        </p>
+        <button class="btn btn-danger" id="open-delete-flow-btn" style="width:auto;padding:10px 24px;">Delete account</button>
+      </div>
+    </div>
+
+    <!-- Delete account flow (hidden by default, shown as overlay-style panel) -->
+    <div class="tab-panel" id="tab-delete">
+      <h1 style="color: var(--danger);">Delete your account</h1>
+      <p class="page-sub">This is permanent. Let's verify it's really you first.</p>
+
+      <div class="panel" id="delete-step-choice">
+        <h2>Verify your identity</h2>
+        <div class="choice-group">
+          <div class="choice-card selected" data-delete-mode="code">
+            <div class="choice-radio"></div>
+            <div>
+              <div class="choice-label">Email code</div>
+              <div class="choice-desc">Send a 6-digit code to confirm it's you</div>
+            </div>
+          </div>
+          <div class="choice-card" data-delete-mode="password">
+            <div class="choice-radio"></div>
+            <div>
+              <div class="choice-label">Password</div>
+              <div class="choice-desc">Confirm using your account password</div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-secondary" id="delete-continue-btn" style="width:auto;padding:10px 24px;">Continue</button>
+        <button class="btn btn-ghost" id="delete-cancel-1" style="width:auto;">Cancel</button>
+      </div>
+
+      <div class="panel" id="delete-step-code" style="display:none;">
+        <h2>Enter the code</h2>
+        <div id="delete-code-msg"></div>
+        <div class="field-row">
+          <label>6-digit code</label>
+          <input type="text" id="delete-code-input" class="otp-input" maxlength="6" inputmode="numeric" placeholder="••••••">
+        </div>
+        <button class="btn btn-secondary" id="delete-verify-code-btn" style="width:auto;padding:10px 24px;">Verify</button>
+        <button class="btn btn-ghost" id="delete-cancel-2" style="width:auto;">Cancel</button>
+      </div>
+
+      <div class="panel" id="delete-step-password" style="display:none;">
+        <h2>Confirm your password</h2>
+        <div id="delete-password-msg"></div>
+        <div class="field-row">
+          <label>Password</label>
+          <input type="password" id="delete-password-input" placeholder="Your password">
+        </div>
+        <button class="btn btn-secondary" id="delete-verify-password-btn" style="width:auto;padding:10px 24px;">Verify</button>
+        <button class="btn btn-ghost" id="delete-cancel-3" style="width:auto;">Cancel</button>
+      </div>
+
+      <div class="panel" id="delete-step-confirm" style="display:none; border-color: var(--danger-dim);">
+        <h2 style="color: var(--danger);">Final confirmation</h2>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:-8px;margin-bottom:16px;">
+          Type <strong id="confirm-email-display" style="color:var(--text);"></strong> below to permanently delete your account.
+        </p>
+        <div id="delete-confirm-msg"></div>
+        <div class="field-row">
+          <label>Confirm your email</label>
+          <input type="text" id="delete-confirm-email-input" placeholder="you@example.com">
+        </div>
+        <button class="btn btn-danger" id="delete-final-btn" style="width:auto;padding:10px 24px;">Permanently delete my account</button>
+        <button class="btn btn-ghost" id="delete-cancel-4" style="width:auto;">Cancel</button>
+      </div>
     </div>
   </main>
 </div>
@@ -470,6 +541,143 @@
     } else {
       window.location.href = '/index.html';
     }
+  });
+
+  // ---- Delete account flow ----
+  const deleteSteps = ['delete-step-choice', 'delete-step-code', 'delete-step-password', 'delete-step-confirm'];
+  let deleteMode = 'code';
+
+  function showDeleteTab() {
+    document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-delete').classList.add('active');
+    showDeleteStep('delete-step-choice');
+  }
+
+  function showDeleteStep(stepId) {
+    deleteSteps.forEach(id => {
+      document.getElementById(id).style.display = (id === stepId) ? 'block' : 'none';
+    });
+  }
+
+  function backToSecurity() {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-security').classList.add('active');
+    document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
+    document.querySelector('.tab-link[data-tab="security"]').classList.add('active');
+  }
+
+  document.getElementById('open-delete-flow-btn').addEventListener('click', showDeleteTab);
+  document.getElementById('delete-cancel-1').addEventListener('click', backToSecurity);
+  document.getElementById('delete-cancel-2').addEventListener('click', backToSecurity);
+  document.getElementById('delete-cancel-3').addEventListener('click', backToSecurity);
+  document.getElementById('delete-cancel-4').addEventListener('click', backToSecurity);
+
+  document.querySelectorAll('.choice-card[data-delete-mode]').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.choice-card[data-delete-mode]').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      deleteMode = card.dataset.deleteMode;
+    });
+  });
+
+  document.getElementById('delete-continue-btn').addEventListener('click', async () => {
+    if (deleteMode === 'code') {
+      const btn = document.getElementById('delete-continue-btn');
+      btn.disabled = true;
+      btn.textContent = 'Sending code...';
+      const { error } = await prostarSupabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+      btn.disabled = false;
+      btn.textContent = 'Continue';
+      if (error) {
+        alert('Could not send code: ' + (error.message || 'unknown error'));
+        return;
+      }
+      showDeleteStep('delete-step-code');
+    } else {
+      showDeleteStep('delete-step-password');
+    }
+  });
+
+  let deleteVerified = false;
+
+  document.getElementById('delete-verify-code-btn').addEventListener('click', async () => {
+    const msgSlot = document.getElementById('delete-code-msg');
+    msgSlot.innerHTML = '';
+    const code = document.getElementById('delete-code-input').value.trim();
+    if (code.length !== 6) {
+      msgSlot.innerHTML = '<div class="error-msg">Enter the full 6-digit code.</div>';
+      return;
+    }
+    const { data, error } = await prostarVerifyOtp(email, code);
+    if (error || !data.session) {
+      msgSlot.innerHTML = `<div class="error-msg">${error?.message || 'Invalid or expired code.'}</div>`;
+      return;
+    }
+    deleteVerified = true;
+    goToFinalConfirm();
+  });
+
+  document.getElementById('delete-verify-password-btn').addEventListener('click', async () => {
+    const msgSlot = document.getElementById('delete-password-msg');
+    msgSlot.innerHTML = '';
+    const password = document.getElementById('delete-password-input').value;
+    if (!password) return;
+    const { data, error } = await prostarSignInWithPassword(email, password);
+    if (error || !data.session) {
+      msgSlot.innerHTML = '<div class="error-msg">Incorrect password.</div>';
+      return;
+    }
+    deleteVerified = true;
+    goToFinalConfirm();
+  });
+
+  function goToFinalConfirm() {
+    document.getElementById('confirm-email-display').textContent = email;
+    showDeleteStep('delete-step-confirm');
+  }
+
+  document.getElementById('delete-final-btn').addEventListener('click', async () => {
+    const msgSlot = document.getElementById('delete-confirm-msg');
+    msgSlot.innerHTML = '';
+
+    if (!deleteVerified) {
+      msgSlot.innerHTML = '<div class="error-msg">Identity verification is required first.</div>';
+      return;
+    }
+
+    const typedEmail = document.getElementById('delete-confirm-email-input').value.trim();
+    if (typedEmail.toLowerCase() !== email.toLowerCase()) {
+      msgSlot.innerHTML = '<div class="error-msg">That doesn\'t match your account email. Please type it exactly.</div>';
+      return;
+    }
+
+    const btn = document.getElementById('delete-final-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Deleting...';
+
+    const { data: { session: currentSession } } = await prostarSupabase.auth.getSession();
+
+    const resp = await fetch(`${PROSTAR_SUPABASE_URL}/functions/v1/prostar-delete-account`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentSession.access_token}`
+      },
+      body: JSON.stringify({ confirm_email: typedEmail })
+    });
+
+    if (!resp.ok) {
+      const errBody = await resp.json().catch(() => ({}));
+      msgSlot.innerHTML = `<div class="error-msg">${errBody.error === 'email_mismatch' ? 'Email did not match.' : 'Could not delete your account. Please try again.'}</div>`;
+      btn.disabled = false;
+      btn.textContent = 'Permanently delete my account';
+      return;
+    }
+
+    // Fully clear all local session/account data and leave.
+    await prostarSignOutAll();
+    window.location.href = '/index.html';
   });
 })();
 </script>
