@@ -214,17 +214,26 @@
 
       <div class="panel">
         <h2>Change password</h2>
-        <div id="change-password-msg"></div>
-        <form id="change-password-form">
+        <div id="change-password-collapsed">
+          <p style="font-size:13px;color:var(--text-muted);margin:-8px 0 4px;">Update the password used to log in.</p>
+          <button class="btn btn-secondary" id="open-change-password-btn" style="width:auto;padding:10px 24px;">Change password</button>
+        </div>
+        <form id="change-password-form" style="display:none;">
+          <div id="change-password-msg"></div>
+          <div class="field-row">
+            <label>Current password</label>
+            <input type="password" id="current-password-input" placeholder="Your current password">
+          </div>
           <div class="field-row">
             <label>New password</label>
             <input type="password" id="new-password-input" placeholder="At least 8 characters" minlength="8">
           </div>
           <div class="field-row">
             <label>Confirm new password</label>
-            <input type="password" id="confirm-password-input" placeholder="Re-enter your password" minlength="8">
+            <input type="password" id="confirm-password-input" placeholder="Re-enter your new password" minlength="8">
           </div>
           <button type="submit" class="btn btn-primary" style="width:auto;padding:10px 24px;">Update password</button>
+          <button type="button" class="btn btn-ghost" id="cancel-change-password-btn" style="width:auto;">Cancel</button>
         </form>
       </div>
 
@@ -426,16 +435,39 @@
     });
   }
 
-  // ---- Change password ----
-  document.getElementById('change-password-form').addEventListener('submit', async (e) => {
+  // ---- Change password (collapsed label -> form, requires old password) ----
+  const changePasswordCollapsed = document.getElementById('change-password-collapsed');
+  const changePasswordForm = document.getElementById('change-password-form');
+
+  document.getElementById('open-change-password-btn').addEventListener('click', () => {
+    changePasswordCollapsed.style.display = 'none';
+    changePasswordForm.style.display = 'block';
+  });
+
+  document.getElementById('cancel-change-password-btn').addEventListener('click', () => {
+    changePasswordForm.style.display = 'none';
+    changePasswordCollapsed.style.display = 'block';
+    document.getElementById('change-password-msg').innerHTML = '';
+    document.getElementById('current-password-input').value = '';
+    document.getElementById('new-password-input').value = '';
+    document.getElementById('confirm-password-input').value = '';
+  });
+
+  changePasswordForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const msgSlot = document.getElementById('change-password-msg');
     msgSlot.innerHTML = '';
+
+    const currentPw = document.getElementById('current-password-input').value;
     const newPw = document.getElementById('new-password-input').value;
     const confirmPw = document.getElementById('confirm-password-input').value;
 
+    if (!currentPw) {
+      msgSlot.innerHTML = '<div class="error-msg">Enter your current password.</div>';
+      return;
+    }
     if (newPw.length < 8) {
-      msgSlot.innerHTML = '<div class="error-msg">Password must be at least 8 characters.</div>';
+      msgSlot.innerHTML = '<div class="error-msg">New password must be at least 8 characters.</div>';
       return;
     }
     if (newPw !== confirmPw) {
@@ -443,11 +475,29 @@
       return;
     }
 
+    const submitBtn = changePasswordForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span> Verifying...';
+
+    // Verify the current password is correct before allowing the change.
+    const { error: verifyError } = await prostarSignInWithPassword(email, currentPw);
+    if (verifyError) {
+      msgSlot.innerHTML = '<div class="error-msg">Your current password is incorrect.</div>';
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Update password';
+      return;
+    }
+
+    submitBtn.innerHTML = '<span class="spinner"></span> Saving...';
     const { error } = await prostarSupabase.auth.updateUser({ password: newPw });
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Update password';
+
     if (error) {
       msgSlot.innerHTML = `<div class="error-msg">${error.message || 'Could not update password.'}</div>`;
     } else {
       msgSlot.innerHTML = '<div class="success-msg">Password updated.</div>';
+      document.getElementById('current-password-input').value = '';
       document.getElementById('new-password-input').value = '';
       document.getElementById('confirm-password-input').value = '';
     }
