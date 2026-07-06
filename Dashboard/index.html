@@ -145,8 +145,112 @@
 
   .empty-state { color: var(--text-faint); font-size: 13px; padding: 20px 0; text-align: center; }
 
+  .home-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+  }
+  .home-box { margin-bottom: 0; }
+  .home-box h2 { margin-bottom: 16px; }
+
   .tab-panel { display: none; }
   .tab-panel.active { display: block; }
+
+  /* Avatar edit affordance */
+  .avatar-edit-wrap {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .avatar-edit-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .avatar-edit-wrap:hover .avatar-edit-overlay { opacity: 1; }
+
+  /* Avatar crop modal */
+  .avatar-modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(2, 5, 12, 0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .avatar-modal-backdrop.open { display: flex; }
+
+  .avatar-modal {
+    background: linear-gradient(180deg, rgba(18, 27, 51, 0.9), rgba(11, 18, 36, 0.92));
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: var(--shadow-card), var(--shadow-glow);
+  }
+
+  .avatar-crop-stage {
+    position: relative;
+    width: 320px;
+    height: 320px;
+    max-width: 100%;
+    margin: 0 auto;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: #000;
+    cursor: grab;
+  }
+  .avatar-crop-stage:active { cursor: grabbing; }
+
+  .avatar-crop-stage canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+  }
+
+  .avatar-crop-circle-mask {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: 0 0 0 2000px rgba(5, 9, 20, 0.7);
+    border-radius: 50%;
+    width: 260px;
+    height: 260px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid rgba(255,255,255,0.6);
+  }
+
+  .avatar-zoom-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .avatar-zoom-row input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+  }
 </style>
 </head>
 <body>
@@ -164,7 +268,8 @@
     </div>
 
     <nav class="tabs">
-      <div class="tab-link active" data-tab="profile">Profile</div>
+      <div class="tab-link active" data-tab="home">Home</div>
+      <div class="tab-link" data-tab="profile">Profile</div>
       <div class="tab-link" data-tab="apps">Connected apps</div>
       <div class="tab-link" data-tab="security">Security</div>
     </nav>
@@ -182,26 +287,95 @@
   </div>
 
   <main>
-    <div class="tab-panel active" id="tab-profile">
+    <div class="tab-panel active" id="tab-home">
+      <h1>Welcome back</h1>
+      <p class="page-sub">A quick look at your Prostar account.</p>
+
+      <div class="home-grid">
+        <div class="panel home-box">
+          <h2>You</h2>
+          <div class="profile-row" style="margin-bottom:0;">
+            <div class="avatar" id="home-avatar" style="width:56px;height:56px;font-size:20px;">?</div>
+            <div>
+              <div style="font-size:16px;font-weight:600;" id="home-name">—</div>
+              <div style="font-size:13px;color:var(--text-muted);" id="home-email">—</div>
+            </div>
+          </div>
+          <button class="btn btn-secondary" data-goto-tab="profile" style="width:auto;padding:8px 18px;margin-top:20px;font-size:13px;">Edit profile</button>
+        </div>
+
+        <div class="panel home-box">
+          <h2>Connected apps</h2>
+          <div id="home-apps-list"><div class="empty-state">Loading...</div></div>
+          <button class="btn btn-secondary" data-goto-tab="apps" style="width:auto;padding:8px 18px;margin-top:12px;font-size:13px;">View all</button>
+        </div>
+
+        <div class="panel home-box">
+          <h2>Recent sign-ins</h2>
+          <div id="home-activity-list"><div class="empty-state">Loading...</div></div>
+          <button class="btn btn-secondary" data-goto-tab="security" style="width:auto;padding:8px 18px;margin-top:12px;font-size:13px;">View security</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-profile">
       <h1>Your Prostar account</h1>
       <p class="page-sub">Manage the info you use across every site that supports Prostar.</p>
 
       <div class="panel">
         <div class="profile-row">
-          <div class="avatar" id="profile-avatar" style="width:72px;height:72px;font-size:26px;">?</div>
+          <div class="avatar-edit-wrap" id="avatar-edit-wrap">
+            <div class="avatar" id="profile-avatar" style="width:72px;height:72px;font-size:26px;">?</div>
+            <div class="avatar-edit-overlay">Edit</div>
+          </div>
           <div>
             <div style="font-size:18px;font-weight:600;" id="profile-name">—</div>
             <div style="font-size:13px;color:var(--text-muted);" id="profile-email">—</div>
+            <div style="margin-top:8px;">
+              <a href="#" id="remove-photo-link" style="font-size:12px;color:var(--danger);display:none;">Remove photo</a>
+            </div>
           </div>
         </div>
+        <input type="file" id="avatar-file-input" accept="image/*" style="display:none;">
 
-        <div class="field-row">
+        <div class="field-row" id="display-name-collapsed">
+          <label>Display name</label>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div class="value" id="display-name-display">—</div>
+            <button class="btn btn-secondary" id="edit-name-btn" style="width:auto;padding:8px 16px;font-size:13px;">Change</button>
+          </div>
+        </div>
+        <div class="field-row" id="display-name-edit-row" style="display:none;">
           <label>Display name</label>
           <input type="text" id="display-name-input" placeholder="Your name">
+          <div style="display:flex;gap:10px;margin-top:12px;">
+            <button class="btn btn-primary" id="save-profile-btn" style="width:auto;padding:10px 24px;">Save changes</button>
+            <button class="btn btn-ghost" id="cancel-name-btn" style="width:auto;">Cancel</button>
+          </div>
         </div>
-
-        <button class="btn btn-primary" id="save-profile-btn" style="width:auto;padding:10px 24px;">Save changes</button>
         <div id="profile-msg" style="margin-top:14px;"></div>
+      </div>
+    </div>
+
+    <!-- Avatar crop/zoom/pan modal -->
+    <div id="avatar-modal-backdrop" class="avatar-modal-backdrop">
+      <div class="avatar-modal">
+        <h2 style="font-family:var(--font-display);font-size:16px;margin:0 0 16px;">Update your photo</h2>
+        <div class="avatar-crop-stage" id="avatar-crop-stage">
+          <canvas id="avatar-crop-canvas" width="320" height="320"></canvas>
+          <div class="avatar-crop-circle-mask"></div>
+        </div>
+        <div class="avatar-zoom-row">
+          <span style="font-size:12px;color:var(--text-faint);">-</span>
+          <input type="range" id="avatar-zoom-slider" min="1" max="3" step="0.01" value="1">
+          <span style="font-size:12px;color:var(--text-faint);">+</span>
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);text-align:center;margin:8px 0 20px;">Drag to reposition. Use the slider to zoom.</p>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-secondary" id="avatar-cancel-btn">Cancel</button>
+          <button class="btn btn-primary" id="avatar-save-btn">Save photo</button>
+        </div>
+        <div id="avatar-modal-msg"></div>
       </div>
     </div>
 
@@ -358,7 +532,7 @@
     .eq('id', activeUserId)
     .single();
 
-  const displayName = profile?.display_name || session.user.email.split('@')[0];
+  let displayName = profile?.display_name || session.user.email.split('@')[0];
   const email = session.user.email;
 
   document.getElementById('active-name').textContent = displayName;
@@ -371,15 +545,245 @@
   document.getElementById('profile-avatar').textContent = prostarInitials(displayName);
   document.getElementById('profile-avatar').style.background = prostarAvatarColor(activeUserId);
   document.getElementById('display-name-input').value = displayName;
+  document.getElementById('display-name-display').textContent = displayName;
+
+  document.getElementById('home-name').textContent = displayName;
+  document.getElementById('home-email').textContent = email;
+  document.getElementById('home-avatar').textContent = prostarInitials(displayName);
+  document.getElementById('home-avatar').style.background = prostarAvatarColor(activeUserId);
+
+  // ---- Avatar photo editor (crop / zoom / pan) ----
+  const avatarEditWrap = document.getElementById('avatar-edit-wrap');
+  const avatarFileInput = document.getElementById('avatar-file-input');
+  const avatarModalBackdrop = document.getElementById('avatar-modal-backdrop');
+  const avatarCanvas = document.getElementById('avatar-crop-canvas');
+  const avatarCtx = avatarCanvas.getContext('2d');
+  const avatarZoomSlider = document.getElementById('avatar-zoom-slider');
+  const avatarModalMsg = document.getElementById('avatar-modal-msg');
+  const removePhotoLink = document.getElementById('remove-photo-link');
+
+  let avatarImg = null;
+  let avatarZoom = 1;
+  let avatarOffsetX = 0;
+  let avatarOffsetY = 0;
+  let avatarBaseScale = 1;
+  let isDragging = false;
+  let dragStartX = 0, dragStartY = 0;
+  let dragOriginX = 0, dragOriginY = 0;
+
+  function updateRemovePhotoVisibility() {
+    removePhotoLink.style.display = (profile?.avatar_url) ? 'inline' : 'none';
+  }
+
+  avatarEditWrap.addEventListener('click', () => avatarFileInput.click());
+
+  avatarFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        avatarImg = img;
+        avatarZoom = 1;
+        avatarOffsetX = 0;
+        avatarOffsetY = 0;
+        // Base scale: fit the smaller dimension to fill the 320x320 canvas
+        avatarBaseScale = Math.max(320 / img.width, 320 / img.height);
+        avatarZoomSlider.value = 1;
+        avatarModalMsg.innerHTML = '';
+        drawAvatarCanvas();
+        avatarModalBackdrop.classList.add('open');
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+    avatarFileInput.value = ''; // allow re-selecting the same file later
+  });
+
+  function drawAvatarCanvas() {
+    if (!avatarImg) return;
+    avatarCtx.clearRect(0, 0, 320, 320);
+    const scale = avatarBaseScale * avatarZoom;
+    const w = avatarImg.width * scale;
+    const h = avatarImg.height * scale;
+    const x = (320 - w) / 2 + avatarOffsetX;
+    const y = (320 - h) / 2 + avatarOffsetY;
+    avatarCtx.drawImage(avatarImg, x, y, w, h);
+  }
+
+  avatarZoomSlider.addEventListener('input', () => {
+    avatarZoom = parseFloat(avatarZoomSlider.value);
+    clampAvatarOffset();
+    drawAvatarCanvas();
+  });
+
+  function clampAvatarOffset() {
+    if (!avatarImg) return;
+    const scale = avatarBaseScale * avatarZoom;
+    const w = avatarImg.width * scale;
+    const h = avatarImg.height * scale;
+    const maxOffsetX = Math.max(0, (w - 320) / 2);
+    const maxOffsetY = Math.max(0, (h - 320) / 2);
+    avatarOffsetX = Math.max(-maxOffsetX, Math.min(maxOffsetX, avatarOffsetX));
+    avatarOffsetY = Math.max(-maxOffsetY, Math.min(maxOffsetY, avatarOffsetY));
+  }
+
+  const cropStage = document.getElementById('avatar-crop-stage');
+  cropStage.addEventListener('pointerdown', (e) => {
+    isDragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    dragOriginX = avatarOffsetX;
+    dragOriginY = avatarOffsetY;
+    cropStage.setPointerCapture(e.pointerId);
+  });
+  cropStage.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+    avatarOffsetX = dragOriginX + dx;
+    avatarOffsetY = dragOriginY + dy;
+    clampAvatarOffset();
+    drawAvatarCanvas();
+  });
+  cropStage.addEventListener('pointerup', () => { isDragging = false; });
+  cropStage.addEventListener('pointercancel', () => { isDragging = false; });
+
+  document.getElementById('avatar-cancel-btn').addEventListener('click', () => {
+    avatarModalBackdrop.classList.remove('open');
+    avatarImg = null;
+  });
+
+  document.getElementById('avatar-save-btn').addEventListener('click', async () => {
+    if (!avatarImg) return;
+    const btn = document.getElementById('avatar-save-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Uploading...';
+    avatarModalMsg.innerHTML = '';
+
+    try {
+      // Export just the circular crop area (center 260x260 of the 320x320 canvas)
+      // as a fresh square image for upload.
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = 260;
+      exportCanvas.height = 260;
+      const exportCtx = exportCanvas.getContext('2d');
+      exportCtx.drawImage(avatarCanvas, 30, 30, 260, 260, 0, 0, 260, 260);
+
+      const blob = await new Promise(resolve => exportCanvas.toBlob(resolve, 'image/jpeg', 0.9));
+      const filePath = `${activeUserId}/avatar.jpg`;
+
+      const { error: uploadError } = await prostarSupabase.storage
+        .from('prostar-avatars')
+        .upload(filePath, blob, { upsert: true, contentType: 'image/jpeg' });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = prostarSupabase.storage
+        .from('prostar-avatars')
+        .getPublicUrl(filePath);
+
+      // Cache-bust so the browser doesn't show a stale cached image
+      // after re-uploading a new photo to the same path.
+      const newAvatarUrl = publicUrlData.publicUrl + '?t=' + Date.now();
+
+      const { error: updateError } = await prostarSupabase
+        .from('prostar_profiles')
+        .update({ avatar_url: newAvatarUrl, updated_at: new Date().toISOString() })
+        .eq('id', activeUserId);
+
+      if (updateError) throw updateError;
+
+      profile.avatar_url = newAvatarUrl;
+      applyAvatarToUI(newAvatarUrl);
+      prostarRememberAccount({ userId: activeUserId, email, displayName, avatarUrl: newAvatarUrl, session });
+      updateRemovePhotoVisibility();
+
+      avatarModalBackdrop.classList.remove('open');
+      avatarImg = null;
+    } catch (err) {
+      console.error('Avatar upload failed', err);
+      avatarModalMsg.innerHTML = '<div class="error-msg">Could not upload photo. Try a smaller image or try again.</div>';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Save photo';
+  });
+
+  removePhotoLink.addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (!profile?.avatar_url) return;
+
+    await prostarSupabase.storage.from('prostar-avatars').remove([`${activeUserId}/avatar.jpg`]);
+    await prostarSupabase
+      .from('prostar_profiles')
+      .update({ avatar_url: null, updated_at: new Date().toISOString() })
+      .eq('id', activeUserId);
+
+    profile.avatar_url = null;
+    applyAvatarToUI(null);
+    prostarRememberAccount({ userId: activeUserId, email, displayName, avatarUrl: null, session });
+    updateRemovePhotoVisibility();
+  });
+
+  function applyAvatarToUI(avatarUrl) {
+    const targets = [
+      document.getElementById('active-avatar'),
+      document.getElementById('profile-avatar'),
+      document.getElementById('home-avatar')
+    ];
+    targets.forEach(el => {
+      if (!el) return;
+      if (avatarUrl) {
+        el.style.backgroundImage = `url('${avatarUrl}')`;
+        el.style.backgroundSize = 'cover';
+        el.style.backgroundPosition = 'center';
+        el.textContent = '';
+      } else {
+        el.style.backgroundImage = '';
+        el.textContent = prostarInitials(displayName);
+        el.style.background = prostarAvatarColor(activeUserId);
+      }
+    });
+  }
+
+  // Apply existing avatar on initial page load, if one is set.
+  applyAvatarToUI(profile?.avatar_url || null);
+  updateRemovePhotoVisibility();
 
   // ---- Tabs ----
+  function switchToTab(tabName) {
+    document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    const navTab = document.querySelector(`.tab-link[data-tab="${tabName}"]`);
+    if (navTab) navTab.classList.add('active');
+    document.getElementById('tab-' + tabName).classList.add('active');
+  }
+
   document.querySelectorAll('.tab-link').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab-link').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
-    });
+    tab.addEventListener('click', () => switchToTab(tab.dataset.tab));
+  });
+
+  document.querySelectorAll('[data-goto-tab]').forEach(btn => {
+    btn.addEventListener('click', () => switchToTab(btn.dataset.gotoTab));
+  });
+
+  // ---- Display name: click-to-edit ----
+  const displayNameCollapsed = document.getElementById('display-name-collapsed');
+  const displayNameEditRow = document.getElementById('display-name-edit-row');
+  const displayNameDisplay = document.getElementById('display-name-display');
+
+  document.getElementById('edit-name-btn').addEventListener('click', () => {
+    document.getElementById('display-name-input').value = displayNameDisplay.textContent;
+    displayNameCollapsed.style.display = 'none';
+    displayNameEditRow.style.display = 'block';
+  });
+
+  document.getElementById('cancel-name-btn').addEventListener('click', () => {
+    displayNameEditRow.style.display = 'none';
+    displayNameCollapsed.style.display = 'block';
+    document.getElementById('profile-msg').innerHTML = '';
   });
 
   // ---- Save profile ----
@@ -399,8 +803,13 @@
       msgSlot.innerHTML = `<div class="success-msg">Saved.</div>`;
       document.getElementById('active-name').textContent = newName;
       document.getElementById('profile-name').textContent = newName;
+      document.getElementById('home-name').textContent = newName;
+      displayNameDisplay.textContent = newName;
+      displayName = newName;
       // keep local account store in sync
       prostarRememberAccount({ userId: activeUserId, email, displayName: newName, session });
+      displayNameEditRow.style.display = 'none';
+      displayNameCollapsed.style.display = 'block';
       setTimeout(() => { msgSlot.innerHTML = ''; }, 3000);
     }
   });
@@ -442,6 +851,25 @@
       });
       appsList.appendChild(row);
     });
+  }
+
+  // Home tab: simplified preview of the same approvals data (max 3).
+  const homeAppsList = document.getElementById('home-apps-list');
+  if (!approvals || approvals.length === 0) {
+    homeAppsList.innerHTML = '<div class="empty-state">No connected apps yet.</div>';
+  } else {
+    homeAppsList.innerHTML = approvals.slice(0, 3).map(a => {
+      const name = a.prostar_oauth_clients_public?.name || a.client_id;
+      return `
+        <div class="app-row">
+          <div class="app-logo">${name.charAt(0).toUpperCase()}</div>
+          <div class="app-info">
+            <div class="app-name">${name}</div>
+            <div class="app-meta">Connected ${new Date(a.approved_at).toLocaleDateString()}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   // ---- Change password (collapsed label -> form, requires old password) ----
@@ -520,6 +948,7 @@
   function renderActivity() {
     const accounts = prostarGetKnownAccounts();
     const activityList = document.getElementById('activity-list');
+    const homeActivityList = document.getElementById('home-activity-list');
     const mine = accounts.find(a => a.userId === activeUserId);
     const events = [];
     if (mine) {
@@ -529,7 +958,7 @@
 
     events.sort((a, b) => b.time - a.time);
 
-    activityList.innerHTML = events.map(ev => `
+    const rowHtml = (ev) => `
       <div class="app-row">
         <div class="app-logo" style="color:var(--accent-bright);">&#9679;</div>
         <div class="app-info">
@@ -537,9 +966,21 @@
           <div class="app-meta" style="font-family:var(--font-body);">${new Date(ev.time).toLocaleString()}</div>
         </div>
       </div>
-    `).join('');
+    `;
+
+    activityList.innerHTML = events.map(rowHtml).join('');
+    if (homeActivityList) {
+      homeActivityList.innerHTML = events.slice(0, 2).map(rowHtml).join('');
+    }
   }
   renderActivity();
+
+  function avatarHtml(acc, size) {
+    if (acc.avatarUrl) {
+      return `<div class="avatar" style="width:${size}px;height:${size}px;background-image:url('${acc.avatarUrl}');background-size:cover;background-position:center;"></div>`;
+    }
+    return `<div class="avatar" style="width:${size}px;height:${size}px;background:${prostarAvatarColor(acc.userId)}">${prostarInitials(acc.displayName)}</div>`;
+  }
 
   // ---- Account switcher (rail + security tab) ----
   function renderAccountLists() {
@@ -553,7 +994,7 @@
       const row = document.createElement('div');
       row.className = 'switch-row';
       row.innerHTML = `
-        <div class="avatar" style="background:${prostarAvatarColor(acc.userId)}">${prostarInitials(acc.displayName)}</div>
+        ${avatarHtml(acc, 28)}
         <div class="switch-row-name">${acc.displayName}</div>
       `;
       row.addEventListener('click', async () => {
@@ -567,7 +1008,7 @@
       const row = document.createElement('div');
       row.className = 'app-row';
       row.innerHTML = `
-        <div class="avatar" style="background:${prostarAvatarColor(acc.userId)}">${prostarInitials(acc.displayName)}</div>
+        ${avatarHtml(acc, 36)}
         <div class="app-info">
           <div class="app-name">${acc.displayName}${acc.userId === activeUserId ? ' (this session)' : ''}</div>
           <div class="app-meta" style="font-family:var(--font-body);">${acc.email}</div>
