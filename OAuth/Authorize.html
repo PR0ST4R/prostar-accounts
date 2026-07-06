@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign in with Prostar</title>
+<link rel="icon" href="/assets/img/prostar-logo.png">
 <link rel="stylesheet" href="/assets/prostar-base.css">
 <style>
   .authorize-card { max-width: 420px; }
@@ -19,15 +20,17 @@
     width: 44px;
     height: 44px;
     border-radius: var(--radius-sm);
-    background: var(--surface-raised);
-    border: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: var(--font-display);
     font-weight: 700;
     font-size: 18px;
-    color: var(--accent);
+    color: var(--accent-bright);
     flex-shrink: 0;
   }
 
@@ -57,15 +60,18 @@
     align-items: center;
     gap: 12px;
     padding: 12px 14px;
-    background: var(--surface-raised);
-    border: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-md);
     cursor: pointer;
-    transition: border-color 0.15s ease, transform 0.1s ease;
+    transition: border-color 0.15s ease, transform 0.1s ease, background 0.15s ease;
   }
 
   .account-row:hover {
     border-color: var(--accent);
+    background: rgba(59, 130, 246, 0.08);
   }
 
   .account-row:active { transform: scale(0.99); }
@@ -152,7 +158,7 @@
 <body>
 
 <div class="auth-shell">
-  <div class="wordmark"><span class="dot"></span>Prostar</div>
+  <div class="wordmark"><img src="/assets/img/prostar-logo.png" alt="">Prostar</div>
 
   <div class="card authorize-card">
 

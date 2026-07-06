@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your Prostar account</title>
+<link rel="icon" href="/assets/img/prostar-logo.png">
 <link rel="stylesheet" href="/assets/prostar-base.css">
 <style>
   .shell {
@@ -14,8 +15,10 @@
   .rail {
     width: 280px;
     flex-shrink: 0;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(18, 27, 51, 0.5), rgba(11, 18, 36, 0.5));
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
     padding: 28px 20px;
     display: flex;
     flex-direction: column;
@@ -28,7 +31,10 @@
     align-items: center;
     gap: 12px;
     padding: 12px;
-    background: var(--surface-raised);
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: var(--radius-md);
     margin-bottom: 20px;
   }
@@ -102,11 +108,14 @@
   main p.page-sub { color: var(--text-muted); font-size: 14px; margin: 0 0 36px; }
 
   .panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(18, 27, 51, 0.45), rgba(11, 18, 36, 0.45));
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: var(--radius-lg);
     padding: 28px;
     margin-bottom: 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05);
   }
 
   .panel h2 { font-family: var(--font-display); font-size: 16px; margin: 0 0 20px; }
@@ -144,7 +153,7 @@
 
 <div class="shell">
   <div class="rail">
-    <div class="wordmark"><span class="dot"></span>Prostar</div>
+    <div class="wordmark"><img src="/assets/img/prostar-logo.png" alt="">Prostar</div>
 
     <div class="active-account" id="active-account-display">
       <div class="avatar" id="active-avatar">?</div>
